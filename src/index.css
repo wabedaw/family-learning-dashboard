@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+@theme {
+  --color-cream: #FDF6EC;
+  --color-cream-dark: #F5E6D3;
+  --color-cream-light: #FFF9F0;
+  --color-teal: #2A9D8F;
+  --color-teal-dark: #1A7A6E;
+  --color-teal-light: #E0F5F1;
+  --color-coral: #E76F51;
+  --color-coral-light: #FDE8E2;
+  --color-mustard: #E9C46A;
+  --color-mustard-light: #FDF5E0;
+  --color-navy: #264653;
+  --color-navy-light: #3A6B7E;
+  --color-brown: #5C4033;
+  --color-brown-light: #8B6F5E;
+  --color-sage: #A8B5A0;
+  --color-sage-light: #E8EDE5;
+  --color-wine: #9B2335;
+  --color-wine-light: #F5E0E3;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+    background-color: var(--color-cream);
+    color: var(--color-navy);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+  }
+}
+
+/* Retro card style */
+.retro-card {
+  background: var(--color-cream-light);
+  border: 2px solid var(--color-cream-dark);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 var(--color-cream-dark);
+  transition: all 0.2s;
+}
+.retro-card:hover {
+  box-shadow: 5px 5px 0 var(--color-cream-dark);
+  transform: translate(-1px, -1px);
+}
+
+/* Retro badge */
+.retro-badge {
+  font-family: var(--font-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1.5px solid;
+}
+
+/* Retro button */
+.retro-btn {
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-radius: 8px;
+  border: 2px solid;
+  box-shadow: 2px 2px 0 currentColor;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 13px;
+}
+.retro-btn:hover {
+  box-shadow: 3px 3px 0 currentColor;
+  transform: translate(-1px, -1px);
+}
+.retro-btn:active {
+  box-shadow: 0 0 0 currentColor;
+  transform: translate(2px, 2px);
+}
+
+/* Retro divider */
+.retro-divider {
+  border: none;
+  border-top: 2px dashed var(--color-cream-dark);
+  margin: 1rem 0;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-cream);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-cream-dark);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brown-light);
+}
