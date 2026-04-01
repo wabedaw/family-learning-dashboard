@@ -3,19 +3,20 @@ import { createContext, useContext, useReducer, useEffect } from 'react';
 const PET_KEY = 'familyDashboardPet';
 
 // ─── Mood / Level config ────────────────────────────────────
+const B = import.meta.env.BASE_URL;
 const MOODS = {
-  awesome: { emoji: '🤩', label: { en: 'Awesome', zh: '精彩' }, video: '/Pet-1-Awesome.mp4' },
-  happy:   { emoji: '😊', label: { en: 'Happy', zh: '开心' }, video: '/Pet-1-happy.mp4' },
-  calm:    { emoji: '😌', label: { en: 'Calm', zh: '平静' }, video: '/Pet-1-calm.mp4' },
-  low:     { emoji: '😔', label: { en: 'Low', zh: '失落' }, video: '/Pet-1-Disappointed.mp4' },
+  awesome: { emoji: '🤩', label: { en: 'Awesome', zh: '精彩' }, video: B + 'Pet-1-Awesome.mp4' },
+  happy:   { emoji: '😊', label: { en: 'Happy', zh: '开心' }, video: B + 'Pet-1-happy.mp4' },
+  calm:    { emoji: '😌', label: { en: 'Calm', zh: '平静' }, video: B + 'Pet-1-calm.mp4' },
+  low:     { emoji: '😔', label: { en: 'Low', zh: '失落' }, video: B + 'Pet-1-Disappointed.mp4' },
 };
 
 const LEVELS = [
-  { level: 1, name: { en: 'Newborn', zh: '新生' }, xpNeeded: 0, image: '/Pet-1.png' },
-  { level: 2, name: { en: 'Getting Familiar', zh: '熟悉家庭' }, xpNeeded: 30, image: '/Pet-1-growup-1.png' },
-  { level: 3, name: { en: 'Companion', zh: '开始陪伴' }, xpNeeded: 80, image: '/Pet-1-growup-2.png' },
-  { level: 4, name: { en: 'Understands You', zh: '更懂你们' }, xpNeeded: 160, image: '/Pet-1-growup-3.png' },
-  { level: 5, name: { en: 'Family Buddy', zh: '家庭小伙伴' }, xpNeeded: 300, image: '/Pet-1-growup-3.png' },
+  { level: 1, name: { en: 'Newborn', zh: '新生' }, xpNeeded: 0, image: B + 'Pet-1.png' },
+  { level: 2, name: { en: 'Getting Familiar', zh: '熟悉家庭' }, xpNeeded: 30, image: B + 'Pet-1-growup-1.png' },
+  { level: 3, name: { en: 'Companion', zh: '开始陪伴' }, xpNeeded: 80, image: B + 'Pet-1-growup-2.png' },
+  { level: 4, name: { en: 'Understands You', zh: '更懂你们' }, xpNeeded: 160, image: B + 'Pet-1-growup-3.png' },
+  { level: 5, name: { en: 'Family Buddy', zh: '家庭小伙伴' }, xpNeeded: 300, image: B + 'Pet-1-growup-3.png' },
 ];
 
 // ─── Messages per mood ──────────────────────────────────────

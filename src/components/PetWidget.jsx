@@ -4,9 +4,10 @@ import { useData } from '../store/DataContext';
 import { useLang } from '../i18n';
 import { MessageCircle, Zap, Star } from 'lucide-react';
 
+const B = import.meta.env.BASE_URL;
 const ACTION_VIDEOS = {
-  feed: '/Pet-1-feed.mp4',
-  hi: '/Pet-1-Hi.mp4',
+  feed: B + 'Pet-1-feed.mp4',
+  hi: B + 'Pet-1-Hi.mp4',
 };
 
 export default function PetWidget() {
