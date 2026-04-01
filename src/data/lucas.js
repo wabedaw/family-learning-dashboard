@@ -9,7 +9,7 @@ export const lucas = {
   school: 'Brighton College (Singapore)',
   yearGroup: 'Year 6',
   stage: 'Junior School',
-  avatar: '/lucas-avatar.png',
+  avatar: import.meta.env.BASE_URL + 'lucas-avatar.png',
   focusSubjects: ['English (Reading & Writing)', 'Maths', 'Mandarin'],
   familyConstraints: ['Both parents work full-time', 'Tuesday & Thursday evenings free for study'],
 
