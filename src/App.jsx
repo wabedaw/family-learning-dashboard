@@ -5,6 +5,7 @@ import ChildDashboard from './pages/ChildDashboard';
 import ReportDetail from './pages/ReportDetail';
 import LearningAction from './pages/LearningAction';
 import DataUpload from './pages/DataUpload';
+import ChildChat from './pages/ChildChat';
 
 export default function App() {
   return (
@@ -17,6 +18,8 @@ export default function App() {
           <Route path="/actions" element={<LearningAction />} />
           <Route path="/upload" element={<DataUpload />} />
         </Route>
+        {/* Child Chat — standalone layout (no sidebar) */}
+        <Route path="/chat/:childId" element={<ChildChat />} />
       </Routes>
     </BrowserRouter>
   );

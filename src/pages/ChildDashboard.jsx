@@ -9,7 +9,7 @@ import { CommentSummary } from '../components/CommentInsight';
 import GoalCard from '../components/GoalCard';
 import { StabilityOverview } from '../components/StabilityBadge';
 import { WarningsAndStrengths } from '../components/WarningCard';
-import { BookOpen, Award, TrendingUp, Activity, GraduationCap, Calendar, ArrowLeft } from 'lucide-react';
+import { BookOpen, Award, TrendingUp, Activity, GraduationCap, Calendar, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useLang } from '../i18n';
 import { useTranslatedChild, useTranslatedChildren } from '../hooks/useTranslatedChild';
@@ -76,8 +76,12 @@ export default function ChildDashboard() {
           <h1 className="text-2xl font-black text-navy font-[family-name:var(--font-display)]">{tChild.name}{t('dashboard.title')}</h1>
           <p className="text-[11px] text-brown-light font-semibold">{tChild.yearGroup} · {tChild.stage} · {tChild.school}</p>
         </div>
+        <Link to={`/chat/${childId}`}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-teal text-cream-light text-xs font-bold rounded-lg hover:bg-teal-light transition-colors shadow-sm">
+          <MessageCircle className="w-3.5 h-3.5" /> Chat
+        </Link>
         {latest && (
-          <div className="ml-auto text-right">
+          <div className="text-right">
             <p className="text-[11px] text-brown-light uppercase tracking-wider font-semibold">{t('dashboard.latestReport')}</p>
             <p className="text-[11px] text-brown">{latest.term} ({latest.academicYear})</p>
           </div>
