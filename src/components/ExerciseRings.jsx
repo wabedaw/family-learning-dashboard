@@ -21,14 +21,16 @@ export default function ExerciseRings({
   label = '',
   showLabel = true,
 }) {
-  const center = size / 2;
-  const strokeWidth = size * 0.1;
-  const gap = strokeWidth * 0.4;
+  // Use a fixed viewBox so rings are always properly contained
+  const viewBox = 100;
+  const center = viewBox / 2;
+  const strokeWidth = 8;
+  const gap = 2;
 
-  // Radii for each ring (inner to outer)
-  const r1 = center - strokeWidth * 2.5;
-  const r2 = center - strokeWidth * 1.3;
-  const r3 = center - strokeWidth * 0.1;
+  // Radii: outer ring inset by half stroke + 1px margin, then each ring steps inward
+  const r3 = center - strokeWidth / 2 - 1;   // outer (coral)
+  const r2 = r3 - strokeWidth - gap;          // middle (mustard)
+  const r1 = r2 - strokeWidth - gap;          // inner (teal)
 
   function RingCircle({ radius, pct, color, bgColor }) {
     const circumference = 2 * Math.PI * radius;
@@ -62,12 +64,12 @@ export default function ExerciseRings({
   if (restDay) {
     return (
       <div className="flex flex-col items-center gap-1">
-        <div className="relative" style={{ width: size, height: size }}>
-          <svg width={size} height={size}>
-            <circle cx={center} cy={center} r={center - strokeWidth} fill="none" stroke="#E5DDD0" strokeWidth={1} strokeDasharray="4 4" />
+        <div style={{ width: size, height: size }}>
+          <svg width={size} height={size} viewBox={`0 0 ${viewBox} ${viewBox}`}>
+            <circle cx={center} cy={center} r={r2} fill="none" stroke="#E5DDD0" strokeWidth={1} strokeDasharray="4 4" />
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-brown-light text-xs">REST</span>
+          <div className="flex items-center justify-center" style={{ marginTop: -size, height: size }}>
+            <span className="text-brown-light" style={{ fontSize: size * 0.12 }}>REST</span>
           </div>
         </div>
         {showLabel && label && <span className="text-[9px] font-bold uppercase tracking-wide text-navy-light">{label}</span>}
@@ -75,10 +77,13 @@ export default function ExerciseRings({
     );
   }
 
+  // Center icon size scales with ring size
+  const iconSize = size >= 100 ? 'text-lg' : size >= 60 ? 'text-sm' : 'text-xs';
+
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size}>
+        <svg width={size} height={size} viewBox={`0 0 ${viewBox} ${viewBox}`}>
           <RingCircle radius={r1} pct={ring1Pct} color={RING_COLORS.ring1.active} bgColor={RING_COLORS.ring1.bg} />
           <RingCircle radius={r2} pct={ring2Pct} color={RING_COLORS.ring2.active} bgColor={RING_COLORS.ring2.bg} />
           <RingCircle radius={r3} pct={ring3Pct} color={RING_COLORS.ring3.active} bgColor={RING_COLORS.ring3.bg} />
@@ -86,11 +91,11 @@ export default function ExerciseRings({
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {ring1Pct >= 1 && ring2Pct >= 1 && ring3Pct >= 1 ? (
-            <span className="text-lg">🌟</span>
+            <span className={iconSize}>🌟</span>
           ) : ring2Pct >= 1 ? (
-            <span className="text-lg">✅</span>
+            <span className={iconSize}>✅</span>
           ) : ring1Pct >= 1 ? (
-            <span className="text-sm">🏃</span>
+            <span className={iconSize}>🏃</span>
           ) : null}
         </div>
       </div>

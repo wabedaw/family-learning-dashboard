@@ -121,11 +121,11 @@ export default function FamilyOverview() {
         </div>
       </div>
 
-      {/* ═══════ SCHOOL CALENDAR (Dark Theme) ═══════ */}
-      <SchoolCalendar upcoming={upcoming} lang={lang} hasUploaded={children.some(c => (c.newsletters || []).length > 0)} allChildren={tChildren} onCheckIn={setCheckInTask} />
-
-      {/* ═══════ FAMILY EXERCISE ═══════ */}
-      <FamilyExercise />
+      {/* ═══════ TOP ROW: Calendar + Exercise Side by Side ═══════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <SchoolCalendar upcoming={upcoming} lang={lang} hasUploaded={children.some(c => (c.newsletters || []).length > 0)} allChildren={tChildren} onCheckIn={setCheckInTask} mergedCal={mergedCal} />
+        <FamilyExercise />
+      </div>
 
       {/* ═══════ TWO COLUMNS: Michael | Lucas ═══════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
@@ -138,52 +138,72 @@ export default function FamilyOverview() {
   );
 }
 
-// ─── Calendar Cell (max 3 visible, school first, collapsible) ─
-function CalendarCell({ offset, monday, todayStr, today, thisWeek, weekTasks, checkins, lang, onCheckIn }) {
+// ─── 3-Day Calendar Cell (yesterday / today / tomorrow) ─────
+function ThreeDayCell({ date, todayStr, events, tasks, checkins, lang, onCheckIn, isToday, isPast }) {
   const [expanded, setExpanded] = useState(false);
-  const cellDate = new Date(monday);
-  cellDate.setDate(monday.getDate() + offset);
-  const dateStr = cellDate.toISOString().split('T')[0];
-  const isToday = dateStr === todayStr;
-  const isPast = cellDate < today && !isToday;
+  const dateStr = date.toISOString().split('T')[0];
 
-  // School events first, then tasks
-  const dayEvents = thisWeek.filter(e => e.date === dateStr);
-  const dayTasks = weekTasks.filter(t => t.date === dateStr);
+  const dayEvents = events.filter(e => e.date === dateStr);
+  const dayTasks = tasks.filter(t => t.date === dateStr);
   const allItems = [
     ...dayEvents.map(e => ({ type: 'event', data: e })),
     ...dayTasks.map(t => ({ type: 'task', data: t })),
   ];
-  const maxVisible = 3;
+  const maxVisible = 4;
   const hiddenCount = allItems.length - maxVisible;
   const visibleItems = expanded ? allItems : allItems.slice(0, maxVisible);
 
   const bgMap = { holiday: 'bg-coral', trip: 'bg-teal', event: 'bg-mustard', school: 'bg-cream-light/20', sport: 'bg-teal-dark' };
+  const dayLabel = isToday
+    ? (lang === 'zh' ? '今天' : 'Today')
+    : isPast
+      ? (lang === 'zh' ? '昨天' : 'Yesterday')
+      : (lang === 'zh' ? '明天' : 'Tomorrow');
+
+  const dayName = date.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { weekday: 'short' });
 
   return (
-    <div className={`min-h-[70px] rounded-lg p-1.5 transition-all ${
-      isToday ? 'bg-mustard/25 ring-2 ring-mustard' :
+    <div className={`flex-1 min-h-[120px] rounded-lg p-2.5 transition-all ${
+      isToday ? 'bg-mustard/20 ring-2 ring-mustard' :
       isPast ? 'bg-cream-light/5' :
       'bg-cream-light/8 border border-cream-light/10'
     }`}>
-      <div className={`text-[12px] font-black mb-1 ${isToday ? 'text-mustard' : isPast ? 'text-cream-light/30' : 'text-cream-light/70'}`}>
-        {cellDate.getDate()}{isToday && <span className="ml-0.5 text-[10px]">📍</span>}
+      <div className="flex items-baseline justify-between mb-2">
+        <div>
+          <span className={`text-[13px] font-black ${isToday ? 'text-mustard' : isPast ? 'text-cream-light/40' : 'text-cream-light/70'}`}>
+            {date.getDate()}
+          </span>
+          <span className={`ml-1 text-[10px] font-bold ${isToday ? 'text-mustard/80' : 'text-cream-light/30'}`}>
+            {dayName}
+          </span>
+        </div>
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+          isToday ? 'bg-mustard text-navy' : 'bg-cream-light/10 text-cream-light/50'
+        }`}>
+          {dayLabel}
+        </span>
       </div>
+
+      {allItems.length === 0 && (
+        <div className="text-[9px] text-cream-light/25 italic py-2 text-center">
+          {lang === 'zh' ? '无日程' : 'No events'}
+        </div>
+      )}
+
       {visibleItems.map((item, i) => {
         if (item.type === 'event') {
           const e = item.data;
           return (
-            <div key={`e-${i}`} className={`text-[9px] px-1.5 py-0.5 rounded mb-0.5 font-bold leading-tight ${bgMap[e.category] || 'bg-cream-light/20'} ${e.category === 'school' ? 'text-cream-light/80' : 'text-cream-light'}`}>
-              {catIcons[e.category] || '📌'} {(lang === 'zh' ? e.eventZh : e.event)?.slice(0, 20)}
+            <div key={`e-${i}`} className={`text-[9px] px-2 py-1 rounded mb-1 font-bold leading-tight ${bgMap[e.category] || 'bg-cream-light/20'} ${e.category === 'school' ? 'text-cream-light/80' : 'text-cream-light'}`}>
+              {catIcons[e.category] || '📌'} {(lang === 'zh' ? e.eventZh : e.event)?.slice(0, 30)}
             </div>
           );
         }
-        // Task item
         const task = item.data;
         const done = isCheckedIn(checkins, task.id);
         return (
           <button key={`t-${i}`} onClick={() => !done && !isPast && onCheckIn?.(task)}
-            className={`w-full text-left text-[8px] px-1.5 py-0.5 rounded mb-0.5 font-bold leading-tight border transition-all ${
+            className={`w-full text-left text-[9px] px-2 py-1 rounded mb-1 font-bold leading-tight border transition-all ${
               done
                 ? 'bg-teal/40 border-teal/50 text-teal-light line-through'
                 : isToday
@@ -193,20 +213,17 @@ function CalendarCell({ offset, monday, todayStr, today, thisWeek, weekTasks, ch
                     : 'bg-cream-light/10 border-cream-light/15 text-cream-light/50'
             }`}>
             {done ? '✅' : isToday ? '☐' : '○'}
-            {' '}{task.childName?.[0]}: {task.title?.slice(0, 15)}
+            {' '}{task.childName?.[0]}: {task.title?.slice(0, 22)}
           </button>
         );
       })}
-      {/* Collapsed indicator */}
       {hiddenCount > 0 && !expanded && (
-        <button onClick={() => setExpanded(true)}
-          className="w-full text-[8px] text-mustard/80 font-bold text-center hover:text-mustard py-0.5">
+        <button onClick={() => setExpanded(true)} className="w-full text-[8px] text-mustard/80 font-bold text-center hover:text-mustard py-0.5">
           +{hiddenCount} {lang === 'zh' ? '更多' : 'more'}
         </button>
       )}
       {expanded && hiddenCount > 0 && (
-        <button onClick={() => setExpanded(false)}
-          className="w-full text-[8px] text-cream-light/40 font-bold text-center hover:text-cream-light/60 py-0.5">
+        <button onClick={() => setExpanded(false)} className="w-full text-[8px] text-cream-light/40 font-bold text-center hover:text-cream-light/60 py-0.5">
           {lang === 'zh' ? '收起' : 'Less'}
         </button>
       )}
@@ -214,21 +231,31 @@ function CalendarCell({ offset, monday, todayStr, today, thisWeek, weekTasks, ch
   );
 }
 
-// ─── School Calendar (Dark Theme) ───────────────────────────
-function SchoolCalendar({ upcoming, lang, hasUploaded, allChildren, onCheckIn }) {
+// ─── School Calendar — Compact 3-Day View (Dark Theme) ──────
+function SchoolCalendar({ upcoming, lang, hasUploaded, allChildren, onCheckIn, mergedCal }) {
   const { checkins } = useTasks();
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split('T')[0];
 
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+
+  // Get week monday for task generation
   const dayOfWeek = today.getDay();
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const monday = new Date(today);
   monday.setDate(today.getDate() + mondayOffset);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
 
-  const thisWeek = upcoming.filter(e => { const d = new Date(e.date); return d >= monday && d <= sunday; });
-  const futureEvents = upcoming.filter(e => new Date(e.date) > sunday);
+  // All events within the 3-day window
+  const threeDayEvents = (mergedCal || []).filter(e => {
+    const d = e.date;
+    return d >= yesterday.toISOString().split('T')[0] && d <= tomorrow.toISOString().split('T')[0];
+  });
+
+  // Future events beyond tomorrow
+  const futureEvents = upcoming.filter(e => new Date(e.date) > tomorrow);
+
   const summary = newsletterSummary;
 
   // Generate daily tasks from all children's goals
@@ -237,9 +264,9 @@ function SchoolCalendar({ upcoming, lang, hasUploaded, allChildren, onCheckIn })
   );
 
   return (
-    <div className="bg-navy rounded-2xl p-5 shadow-lg">
+    <div className="bg-navy rounded-2xl p-5 shadow-lg h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-mustard rounded-lg flex items-center justify-center">
             <Calendar className="w-4 h-4 text-navy" />
@@ -250,51 +277,47 @@ function SchoolCalendar({ upcoming, lang, hasUploaded, allChildren, onCheckIn })
             </h2>
             <div className="flex items-center gap-2">
               <span className="text-[9px] text-mustard font-bold">{summary.week}</span>
-              {hasUploaded && <span className="text-[8px] px-1.5 py-0.5 bg-teal/30 text-teal-light rounded-full font-semibold">{lang === 'zh' ? '✓ 已同步Newsletter' : '✓ Newsletter synced'}</span>}
+              {hasUploaded && <span className="text-[8px] px-1.5 py-0.5 bg-teal/30 text-teal-light rounded-full font-semibold">{lang === 'zh' ? '✓ Newsletter' : '✓ Synced'}</span>}
             </div>
           </div>
         </div>
         <span className="text-[11px] text-cream-light/60 font-semibold">
-          {today.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          {today.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
       </div>
 
-      {/* Highlights */}
-      <div className="p-3 bg-navy-light/50 rounded-lg mb-4 border border-cream-light/10">
-        <p className="text-[9px] text-mustard font-bold uppercase tracking-wider mb-1.5">{lang === 'zh' ? '本周要点' : 'Highlights'}</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-0.5">
-          {(summary.highlights[lang] || summary.highlights.en).slice(0, 6).map((h, i) => (
+      {/* Highlights (compact) */}
+      <div className="p-2.5 bg-navy-light/50 rounded-lg mb-3 border border-cream-light/10">
+        <p className="text-[8px] text-mustard font-bold uppercase tracking-wider mb-1">{lang === 'zh' ? '本周要点' : 'Highlights'}</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+          {(summary.highlights[lang] || summary.highlights.en).slice(0, 4).map((h, i) => (
             <span key={i} className="text-[9px] text-cream-light/80">• {h}</span>
           ))}
         </div>
       </div>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1.5 mb-4">
-        {(lang === 'zh' ? ['一','二','三','四','五','六','日'] : ['MON','TUE','WED','THU','FRI','SAT','SUN']).map(d => (
-          <div key={d} className="text-center text-[8px] text-cream-light/40 font-bold uppercase tracking-widest py-0.5">{d}</div>
-        ))}
-        {[0, 1, 2, 3, 4, 5, 6].map(offset => (
-          <CalendarCell key={offset} offset={offset} monday={monday} todayStr={todayStr} today={today}
-            thisWeek={thisWeek} weekTasks={weekTasks} checkins={checkins} lang={lang} onCheckIn={onCheckIn} />
-        ))}
+      {/* 3-Day Grid */}
+      <div className="grid grid-cols-3 gap-2 mb-3 flex-1">
+        <ThreeDayCell date={yesterday} todayStr={todayStr} events={threeDayEvents} tasks={weekTasks}
+          checkins={checkins} lang={lang} onCheckIn={onCheckIn} isToday={false} isPast={true} />
+        <ThreeDayCell date={today} todayStr={todayStr} events={threeDayEvents} tasks={weekTasks}
+          checkins={checkins} lang={lang} onCheckIn={onCheckIn} isToday={true} isPast={false} />
+        <ThreeDayCell date={tomorrow} todayStr={todayStr} events={threeDayEvents} tasks={weekTasks}
+          checkins={checkins} lang={lang} onCheckIn={onCheckIn} isToday={false} isPast={false} />
       </div>
 
-      {/* Upcoming Events */}
+      {/* Upcoming Events (compact) */}
       {futureEvents.filter(e => e.priority !== 'low').length > 0 && (
         <div>
-          <p className="text-[9px] text-cream-light/40 font-bold uppercase tracking-wider mb-2">{lang === 'zh' ? '即将到来' : 'Coming Up'}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {futureEvents.filter(e => e.priority !== 'low').slice(0, 8).map((e, i) => {
+          <p className="text-[8px] text-cream-light/40 font-bold uppercase tracking-wider mb-1.5">{lang === 'zh' ? '即将到来' : 'Coming Up'}</p>
+          <div className="flex flex-wrap gap-1">
+            {futureEvents.filter(e => e.priority !== 'low').slice(0, 5).map((e, i) => {
               const d = new Date(e.date);
-              const relevant = e.relevance?.filter(r => r !== 'parents') || [];
               return (
-                <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-cream-light/10 rounded-lg border border-cream-light/10 text-[9px]">
-                  <span className="text-[8px]">{catIcons[e.category] || '📌'}</span>
+                <div key={i} className="flex items-center gap-1 px-2 py-0.5 bg-cream-light/10 rounded-lg text-[8px]">
+                  <span>{catIcons[e.category] || '📌'}</span>
                   <span className="font-bold text-mustard">{d.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' })}</span>
-                  <span className="text-cream-light/70">{(lang === 'zh' ? e.eventZh : e.event)?.slice(0, 28)}{(lang === 'zh' ? e.eventZh : e.event)?.length > 28 ? '…' : ''}</span>
-                  {relevant.map(r => <span key={r} className="text-[7px] px-1 bg-teal/30 text-teal-light rounded font-bold">{r === 'michael' ? 'M' : 'L'}</span>)}
-                  {e.source === 'upload' && <span className="text-[7px] px-1 bg-mustard/30 text-mustard rounded font-bold">📤</span>}
+                  <span className="text-cream-light/60">{(lang === 'zh' ? e.eventZh : e.event)?.slice(0, 20)}</span>
                 </div>
               );
             })}

@@ -30,23 +30,23 @@ function formatTime(isoStr) {
 export default function FamilyExercise() {
   const { data, loading, error, refresh } = useExerciseData();
   const [showPlanEditor, setShowPlanEditor] = useState(false);
-  const [showRecent, setShowRecent] = useState(true);
+  const [showRecent, setShowRecent] = useState(false);
   const { lang } = useLang();
 
   if (loading && !data) {
     return (
-      <div className="retro-card mt-6 p-6 text-center text-navy-light">
+      <div className="bg-navy rounded-2xl p-5 shadow-lg text-center text-cream-light/60 h-full flex items-center justify-center">
         <Activity className="w-5 h-5 animate-pulse inline mr-2" />
-        {lang === 'en' ? 'Loading exercise data...' : '加载运动数据...'}
+        {lang === 'en' ? 'Loading...' : '加载中...'}
       </div>
     );
   }
 
   if (error && !data) {
     return (
-      <div className="retro-card mt-6 p-4 text-center text-brown-light text-sm">
+      <div className="bg-navy rounded-2xl p-5 shadow-lg text-center text-cream-light/60 h-full flex items-center justify-center">
         <Activity className="w-4 h-4 inline mr-1" />
-        {lang === 'en' ? 'Exercise system connecting...' : '运动系统连接中...'}
+        {lang === 'en' ? 'Connecting...' : '连接中...'}
       </div>
     );
   }
@@ -67,26 +67,30 @@ export default function FamilyExercise() {
   const active = activeMemberCount || members.length;
 
   return (
-    <div className="retro-card mt-6 overflow-hidden">
+    <div className="bg-navy rounded-2xl shadow-lg overflow-hidden h-full flex flex-col">
       {/* Header */}
-      <div className="bg-navy text-cream px-4 py-3 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between border-b border-cream-light/10">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4" />
-          <span className="font-display text-sm font-bold tracking-wide uppercase">
-            {lang === 'en' ? 'Family Exercise' : '家庭运动'}
-          </span>
+          <div className="w-8 h-8 bg-coral rounded-lg flex items-center justify-center">
+            <Activity className="w-4 h-4 text-cream-light" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-cream-light font-[family-name:var(--font-display)]">
+              {lang === 'en' ? 'Family Exercise' : '家庭运动'}
+            </h2>
+            {streakDays > 0 && (
+              <span className="text-[9px] text-coral font-bold flex items-center gap-0.5">
+                <Flame className="w-3 h-3" />
+                {streakDays} {lang === 'en' ? 'day streak' : '天连续'}
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {streakDays > 0 && (
-            <span className="bg-coral text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-              <Flame className="w-3 h-3" />
-              {streakDays} {lang === 'en' ? 'day streak' : '天连续'}
-            </span>
-          )}
-          <button onClick={() => setShowPlanEditor(!showPlanEditor)} className="text-cream/70 hover:text-cream transition-colors" title="Exercise Plan Settings">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowPlanEditor(!showPlanEditor)} className="text-cream-light/50 hover:text-cream-light transition-colors" title="Settings">
             <Settings className="w-4 h-4" />
           </button>
-          <button onClick={refresh} className="text-cream/70 hover:text-cream transition-colors" title="Refresh">
+          <button onClick={refresh} className="text-cream-light/50 hover:text-cream-light transition-colors" title="Refresh">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -94,45 +98,45 @@ export default function FamilyExercise() {
 
       {/* Plan Editor (toggle) */}
       {showPlanEditor && (
-        <div className="border-b-2 border-cream-dark">
+        <div className="border-b border-cream-light/10">
           <ExercisePlanEditor onClose={() => setShowPlanEditor(false)} />
         </div>
       )}
 
       {/* Main Content */}
-      <div className="p-4">
-        {/* Family Ring + Individual Rings */}
-        <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-          {/* Family Ring (large) */}
-          <div className="flex flex-col items-center">
+      <div className="p-4 flex-1 flex flex-col">
+        {/* Rings Row: Family ring + 4 individual */}
+        <div className="flex items-center justify-center gap-5">
+          {/* Family Ring */}
+          <div className="flex flex-col items-center shrink-0">
             <ExerciseRings
               ring1Pct={familyRing1}
               ring2Pct={familyRing2}
               ring3Pct={familyRing3}
-              size={140}
+              size={110}
               showLabel={false}
             />
             <div className="mt-1 text-center">
-              <div className="text-xs font-bold text-navy">
-                {completed}/{active} {lang === 'en' ? 'completed' : '已完成'}
+              <div className="text-[11px] font-bold text-cream-light">
+                {completed}/{active} {lang === 'en' ? 'done' : '完成'}
               </div>
               {streakValid && (
-                <div className="text-[10px] text-teal font-medium">
-                  ✓ {lang === 'en' ? 'Family goal met today!' : '今日家庭目标达成！'}
+                <div className="text-[9px] text-teal-light font-medium">
+                  ✓ {lang === 'en' ? 'Family goal met!' : '家庭目标达成！'}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Individual Rings (4 small) */}
-          <div className="grid grid-cols-2 gap-4 md:gap-6">
+          {/* Individual Rings (2x2 grid) */}
+          <div className="grid grid-cols-2 gap-3">
             {members.map(([id, rings]) => (
               <ExerciseRings
                 key={id}
                 ring1Pct={rings.ring1_pct || 0}
                 ring2Pct={rings.ring2_pct || 0}
                 ring3Pct={rings.ring3_pct || 0}
-                size={64}
+                size={52}
                 restDay={rings.restDay}
                 label={rings.name}
               />
@@ -141,31 +145,31 @@ export default function FamilyExercise() {
         </div>
 
         {/* Legend */}
-        <div className="mt-3 flex justify-center">
-          <RingLegend compact={lang !== 'en'} />
+        <div className="mt-2 flex justify-center">
+          <RingLegend compact={true} />
         </div>
 
         {/* Recent Activity */}
         {recentRecords && recentRecords.length > 0 && (
-          <div className="mt-4 border-t border-cream-dark pt-3">
+          <div className="mt-3 pt-2 border-t border-cream-light/10">
             <button
               onClick={() => setShowRecent(!showRecent)}
-              className="flex items-center gap-1 text-xs font-bold text-navy-light uppercase tracking-wide mb-2 hover:text-navy transition-colors"
+              className="flex items-center gap-1 text-[10px] font-bold text-cream-light/50 uppercase tracking-wide mb-1.5 hover:text-cream-light/80 transition-colors"
             >
-              {lang === 'en' ? 'Recent Activity' : '最近运动'}
+              {lang === 'en' ? 'Recent' : '记录'}
               {showRecent ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
             {showRecent && (
-              <div className="space-y-1.5">
-                {recentRecords.slice(0, 5).map(rec => (
-                  <div key={rec.id} className="flex items-center gap-2 text-xs text-navy bg-cream-light/50 rounded px-2 py-1.5">
+              <div className="space-y-1">
+                {recentRecords.slice(0, 4).map(rec => (
+                  <div key={rec.id} className="flex items-center gap-1.5 text-[10px] text-cream-light/80 bg-cream-light/5 rounded px-2 py-1">
                     <span>{getSportEmoji(rec.sport_type)}</span>
                     <span className="font-medium">{rec.actor_id.charAt(0).toUpperCase() + rec.actor_id.slice(1)}</span>
-                    <span className="text-navy-light">·</span>
+                    <span className="text-cream-light/40">·</span>
                     <span>{rec.sport_type}</span>
-                    <span className="text-navy-light">·</span>
+                    <span className="text-cream-light/40">·</span>
                     <span className="font-medium">{rec.duration_min}min</span>
-                    <span className="ml-auto text-navy-light text-[10px]">{formatTime(rec.created_at)}</span>
+                    <span className="ml-auto text-cream-light/40 text-[9px]">{formatTime(rec.created_at)}</span>
                   </div>
                 ))}
               </div>
@@ -175,10 +179,10 @@ export default function FamilyExercise() {
 
         {/* Empty State */}
         {(!recentRecords || recentRecords.length === 0) && activeMembers.length > 0 && (
-          <div className="mt-4 text-center text-xs text-brown-light py-2">
+          <div className="mt-3 text-center text-[10px] text-cream-light/40 py-1">
             {lang === 'en'
-              ? '💪 No exercise logged today yet. Send "sport + activity" via WhatsApp!'
-              : '💪 今天还没有运动记录。通过 WhatsApp 发送「运动 + 内容」打卡！'}
+              ? '💪 Send "sport + activity" via WhatsApp to check in!'
+              : '💪 通过 WhatsApp 发送「运动+内容」打卡！'}
           </div>
         )}
       </div>
