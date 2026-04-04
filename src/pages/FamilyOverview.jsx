@@ -9,6 +9,7 @@ import { Upload, TrendingUp, TrendingDown, Minus, Target, ChevronRight, Star, Sp
 import { useLang } from '../i18n';
 import Avatar from '../components/Avatar';
 import CheckInModal from '../components/CheckInModal';
+import FamilyExercise from '../components/FamilyExercise';
 import { generateWeekTasks, useTasks, isCheckedIn } from '../store/TaskStore';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -122,6 +123,9 @@ export default function FamilyOverview() {
 
       {/* ═══════ SCHOOL CALENDAR (Dark Theme) ═══════ */}
       <SchoolCalendar upcoming={upcoming} lang={lang} hasUploaded={children.some(c => (c.newsletters || []).length > 0)} allChildren={tChildren} onCheckIn={setCheckInTask} />
+
+      {/* ═══════ FAMILY EXERCISE ═══════ */}
+      <FamilyExercise />
 
       {/* ═══════ TWO COLUMNS: Michael | Lucas ═══════ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">

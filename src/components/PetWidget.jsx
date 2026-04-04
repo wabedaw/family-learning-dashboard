@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { usePet, getLevel, getNextLevel, getMoodConfig, getMessage, getGreeting, calculateMood } from '../store/PetStore';
+import { usePet, getLevel, getNextLevel, getMoodConfig, getMessage, getGreeting, calculateMood, calculateExerciseXP } from '../store/PetStore';
 import { useData } from '../store/DataContext';
+import { useExerciseData } from '../hooks/useExerciseData';
 import { useLang } from '../i18n';
 import { MessageCircle, Zap, Star } from 'lucide-react';
 
@@ -13,16 +14,32 @@ const ACTION_VIDEOS = {
 export default function PetWidget() {
   const { pet, dispatch } = usePet();
   const { children } = useData();
+  const { data: exerciseData } = useExerciseData();
   const { lang } = useLang();
   const [showMessage, setShowMessage] = useState(null);
   const [activeAction, setActiveAction] = useState(null); // null | 'feed' | 'hi'
   const moodVideoRef = useRef(null);
   const actionVideoRef = useRef(null);
+  const lastExerciseXPRef = useRef(0);
 
+  // Update mood based on learning (50%) + exercise (50%)
   useEffect(() => {
-    const mood = calculateMood(children);
+    const mood = calculateMood(children, exerciseData);
     dispatch({ type: 'SET_MOOD', payload: mood });
-  }, [children, dispatch]);
+  }, [children, exerciseData, dispatch]);
+
+  // Grant exercise XP when rings complete (deduplicated per session)
+  useEffect(() => {
+    if (!exerciseData) return;
+    const xp = calculateExerciseXP(exerciseData);
+    if (xp > 0 && xp !== lastExerciseXPRef.current) {
+      const delta = xp - lastExerciseXPRef.current;
+      if (delta > 0) {
+        dispatch({ type: 'ADD_XP', payload: delta });
+      }
+      lastExerciseXPRef.current = xp;
+    }
+  }, [exerciseData, dispatch]);
 
   const level = getLevel(pet.xp);
   const nextLvl = getNextLevel(pet.xp);

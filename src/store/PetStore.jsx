@@ -26,11 +26,15 @@ const MESSAGES = {
       "Your family rhythm is amazing this week! Hachi is thrilled!",
       "Everyone's on track and engaged. Hachi couldn't be happier!",
       "What a great week! Keep this energy going!",
+      "Learning AND moving — your family is unstoppable! Hachi is so proud!",
+      "Books read, goals crushed, bodies moving — the perfect combo!",
     ],
     zh: [
       "你们家这周节奏太棒了！小哈超开心！",
       "每个人都在推进目标。小哈为你们骄傲！",
       "这周真精彩！保持这股劲头！",
+      "学习+运动全面开花！小哈为你们骄傲！",
+      "读书、目标、运动——完美组合！",
     ],
   },
   happy: {
@@ -38,11 +42,15 @@ const MESSAGES = {
       "Things are going well. Hachi feels the good vibes!",
       "Nice progress this week. One more small goal would make Hachi even happier!",
       "Your family is on a good track. Hachi approves! 👍",
+      "The family streak is alive! Keep moving together!",
+      "Great exercise energy today! Hachi loves the teamwork!",
     ],
     zh: [
       "小哈感觉还不错，你们家氛围很好~",
       "这周进步不错，再完成一个小目标会更开心！",
       "你们家在正确的轨道上。小哈点赞！👍",
+      "家庭连续打卡中！一起动起来！",
+      "今天运动氛围不错！小哈喜欢这种团队精神！",
     ],
   },
   calm: {
@@ -50,11 +58,15 @@ const MESSAGES = {
       "Hachi is calm today. A steady pace is just fine.",
       "Things have been quiet. Maybe a quick check-in tonight?",
       "Not every week needs to be perfect. Being present matters most.",
+      "A short walk or stretch could lift the whole family's energy!",
+      "Even 10 minutes of movement together counts. Start small!",
     ],
     zh: [
       "小哈今天很平静，稳步前进就好。",
       "这两天有点安静，今晚花5分钟聊聊？",
       "不是每周都要完美。你们在一起就很好。",
+      "一起散散步或做做拉伸，全家的能量都会提升！",
+      "哪怕一起运动10分钟也算。从小开始！",
     ],
   },
   low: {
@@ -62,11 +74,15 @@ const MESSAGES = {
       "Hachi is a bit quiet lately. Just one small record today would help!",
       "It's been a while. Don't worry — start with one tiny step.",
       "Hachi misses the family energy. Even a short check-in counts!",
+      "No exercise or learning updates in a while. Hachi is waiting for you!",
+      "A quick jog or a few pages — anything counts to get back on track!",
     ],
     zh: [
       "小哈最近有点安静。今天补一条记录就够了！",
       "好久没更新了。别着急，从一小步开始。",
       "小哈想念家庭的活力。哪怕简短聊聊也算！",
+      "好久没有学习或运动记录了。小哈在等你们！",
+      "跑跑步或看看书——什么都行，小哈想你们了！",
     ],
   },
 };
@@ -78,6 +94,9 @@ const GREETINGS = {
     "5 minutes of chatting tonight might be better than 1 hour of pushing.",
     "What made someone in your family smile today?",
     "Remember: small steps every day make big dreams come true! 🐾",
+    "Have you closed your exercise rings today? 💪",
+    "A family that moves together grows together! 🏃",
+    "Which sport will your family try this weekend?",
   ],
   zh: [
     "今天你们家谁最值得被看见一下？",
@@ -85,29 +104,43 @@ const GREETINGS = {
     "今晚花5分钟聊聊，也许比催一次更有效。",
     "今天你们家谁笑了？",
     "记住：每天一小步，大梦想就能成真！🐾",
+    "今天的运动三环关闭了吗？💪",
+    "一起运动的家庭，一起成长！🏃",
+    "这个周末你们家打算试试什么运动？",
   ],
 };
 
-// ─── Calculate mood from family data (3-day window) ─────────
-// Rules:
-//   +1  record uploaded (term report / exam quiz / newsletter / homework)
-//   +1  child reflection (weekly child reflection)
-//   +2  family interaction (parent note / weekly reflection)
+// ─── Calculate mood from family data (50% learning + 50% exercise) ─────────
+//
+// LEARNING SCORE (0–5):
+//   +1  record uploaded (term report / exam quiz / newsletter / homework) in 3 days
+//   +1  child reflection in 3 days
+//   +2  family interaction (parent note / weekly reflection) in 3 days
 //   +1  goal progress (goals on-track or achieved)
 //   -1  1 day no update
 //   -2  2+ consecutive days no update
-//   -1  high conflict without repair (warnings with no recent positive action)
+//   -1  high conflict without repair
 //
-// Result: >=4 → happy, 1-3 → calm, <=0 → low (disappointed)
+// EXERCISE SCORE (0–5):
+//   +2  family streak active (streak.current > 0)
+//   +1  per child checked in today (max +2)
+//   +1  any adult checked in today
+//   -1  no exercise records in 2 days
+//   -2  no exercise records in 3+ days
+//
+// COMBINED = (learningScore + exerciseScore) / 2
+//   >=4.5 → awesome 🤩
+//   >=3.5 → happy 😊
+//   >=2.5 → calm 😌
+//   <2.5  → low 😔
 
-export function calculateMood(children) {
+export function calculateLearningScore(children) {
   let score = 0;
   const now = Date.now();
   const day = 86400000;
   const threeDays = 3 * day;
 
   children.forEach(child => {
-    // --- Collect all timestamped documents ---
     const records = [
       ...(child.exams || []),
       ...(child.newsletters || []),
@@ -124,45 +157,116 @@ export function calculateMood(children) {
       return t ? new Date(t).getTime() : 0;
     };
 
-    // +1 record uploaded in last 3 days (term report / exam / newsletter / homework)
     const recentRecords = records.filter(d => (now - getTime(d)) < threeDays);
     if (recentRecords.length > 0) score += 1;
 
-    // +1 child reflection in last 3 days
     const recentReflections = reflections.filter(d => (now - getTime(d)) < threeDays);
     if (recentReflections.length > 0) score += 1;
 
-    // +2 family interaction in last 3 days (parent note / reflection)
     const recentFamily = familyDocs.filter(d => (now - getTime(d)) < threeDays);
     if (recentFamily.length > 0) score += 2;
 
-    // +1 goal progress (any goal on-track or achieved)
     const goals = child.goals || [];
     const advancing = goals.filter(g => g.status === 'on-track' || g.status === 'achieved').length;
     if (advancing > 0) score += 1;
 
-    // --- Penalty: days without any update ---
     const allDocs = [...records, ...familyDocs];
     const allTimes = allDocs.map(getTime).filter(t => t > 0);
     if (allTimes.length > 0) {
       const lastUpdate = Math.max(...allTimes);
       const daysSince = (now - lastUpdate) / day;
-      if (daysSince >= 2) score -= 2;      // 2+ days no update
-      else if (daysSince >= 1) score -= 1;  // 1 day no update
+      if (daysSince >= 2) score -= 2;
+      else if (daysSince >= 1) score -= 1;
     } else {
-      // No records at all — slight penalty
       score -= 1;
     }
 
-    // -1 high conflict without repair (high-severity warnings with no recent positive docs)
     const highWarnings = (child.warnings || []).filter(w => w.severity === 'high').length;
     if (highWarnings >= 2 && recentFamily.length === 0) score -= 1;
   });
 
-  // Result mapping
-  if (score >= 4) return 'happy';
-  if (score >= 1) return 'calm';
+  // Clamp to 0–5
+  return Math.max(0, Math.min(5, score));
+}
+
+export function calculateExerciseScore(exerciseData) {
+  if (!exerciseData) return 0;
+  let score = 0;
+
+  const { streak, memberRings, recentRecords } = exerciseData;
+
+  // +2 family streak active
+  if (streak?.current > 0) score += 2;
+
+  // +1 per child checked in today (max +2), +1 adult checked in
+  if (memberRings) {
+    const CHILDREN = ['michael', 'lucas'];
+    const ADULTS = ['fay', 'david'];
+    let childCheckins = 0;
+    let adultCheckin = false;
+
+    for (const [id, rings] of Object.entries(memberRings)) {
+      if (rings.restDay) continue;
+      const checkedIn = (rings.ring1_pct || 0) >= 1; // Ring 1 = ≥30 min check-in
+      if (CHILDREN.includes(id) && checkedIn) childCheckins++;
+      if (ADULTS.includes(id) && checkedIn) adultCheckin = true;
+    }
+    score += Math.min(childCheckins, 2);
+    if (adultCheckin) score += 1;
+  }
+
+  // Penalty: no recent exercise records
+  if (recentRecords && recentRecords.length > 0) {
+    // Recent records exist — no penalty
+  } else {
+    // No records today; check streak for multi-day inactivity signal
+    if (!streak || streak.current === 0) {
+      const lastDate = streak?.last_valid_date;
+      if (lastDate) {
+        const daysSince = (Date.now() - new Date(lastDate).getTime()) / 86400000;
+        if (daysSince >= 3) score -= 2;
+        else if (daysSince >= 2) score -= 1;
+      } else {
+        score -= 1; // No exercise history at all
+      }
+    }
+  }
+
+  // Clamp to 0–5
+  return Math.max(0, Math.min(5, score));
+}
+
+export function calculateMood(children, exerciseData) {
+  const learningScore = calculateLearningScore(children);
+  const exerciseScore = calculateExerciseScore(exerciseData);
+
+  // 50/50 weighted average
+  const combined = (learningScore + exerciseScore) / 2;
+
+  if (combined >= 4.5) return 'awesome';
+  if (combined >= 3.5) return 'happy';
+  if (combined >= 2.5) return 'calm';
   return 'low';
+}
+
+// ─── Exercise XP Rewards ────────────────────────────────────
+// Call this when exercise data updates to grant XP for new achievements
+export function calculateExerciseXP(exerciseData) {
+  if (!exerciseData?.memberRings) return 0;
+  let xp = 0;
+
+  for (const [, rings] of Object.entries(exerciseData.memberRings)) {
+    if (rings.restDay) continue;
+    if ((rings.ring1_pct || 0) >= 1) xp += 3;  // Ring 1 complete: +3 XP
+    if ((rings.ring2_pct || 0) >= 1) xp += 5;  // Ring 2 complete: +5 XP
+    if ((rings.ring3_pct || 0) >= 1) xp += 8;  // Ring 3 complete: +8 XP
+  }
+
+  // Streak milestone bonus: every 7 days
+  const streakDays = exerciseData.streak?.current || 0;
+  if (streakDays > 0 && streakDays % 7 === 0) xp += 15;
+
+  return xp;
 }
 
 // ─── Initial State ──────────────────────────────────────────
