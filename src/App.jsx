@@ -5,6 +5,7 @@ import ChildDashboard from './pages/ChildDashboard';
 import ReportDetail from './pages/ReportDetail';
 import LearningAction from './pages/LearningAction';
 import DataUpload from './pages/DataUpload';
+import ChildInsights from './pages/ChildInsights';
 import ChildChat from './pages/ChildChat';
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<FamilyOverview />} />
           <Route path="/child/:childId" element={<ChildDashboard />} />
+          <Route path="/child/:childId/insights" element={<ChildInsights />} />
           <Route path="/reports" element={<ReportDetail />} />
           <Route path="/actions" element={<LearningAction />} />
           <Route path="/upload" element={<DataUpload />} />

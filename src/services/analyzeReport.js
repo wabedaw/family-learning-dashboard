@@ -288,6 +288,56 @@ Return JSON:
   }
 
   // ──────────────────────────────────────────────────────
+  // TYPE 7: WHATSAPP CHAT EXPORT
+  // ──────────────────────────────────────────────────────
+  if (reportType === 'whatsapp') {
+    return `Analyze this WhatsApp chat export between family members. Extract education-related events, discussions about school, learning moments, parenting observations, and any emotionally significant exchanges.
+${childContextBlock(ctx)}
+
+WhatsApp chat text:
+"""
+${text}
+"""
+
+Parse the WhatsApp export format (typically "[DD/MM/YYYY, HH:MM] Name: message" or similar).
+Focus on extracting key events relevant to the child's education, wellbeing, and family dynamics.
+
+Return JSON:
+{
+  "events": [
+    {
+      "date": "YYYY-MM-DD",
+      "type": "academic|behavioral|emotional|social|achievement|health|planning",
+      "title": "string — short descriptive title",
+      "detail": "string — 1-2 sentence description of what happened",
+      "participants": ["names of people involved in this exchange"],
+      "aiInsight": {
+        "stuckPoints": ["any concerns or challenges revealed"],
+        "insights": ["actionable observations"],
+        "wins": ["positive moments or achievements"]
+      }
+    }
+  ],
+  "summary": "string — 2-3 sentence overview of the chat period",
+  "period": {
+    "start": "YYYY-MM-DD",
+    "end": "YYYY-MM-DD"
+  },
+  "themes": ["recurring themes in the conversations"],
+  "communicationPatterns": {
+    "positive": ["healthy communication patterns observed"],
+    "improvement": ["areas where family communication could improve"]
+  }
+}
+
+IMPORTANT:
+- Only extract events that are educationally or developmentally relevant — skip casual greetings, logistics about food/transport, etc.
+- Aim for 5-15 key events (not every single message).
+- Dates must be in YYYY-MM-DD format.
+- If you cannot determine the exact date, use the closest date from context.`;
+  }
+
+  // ──────────────────────────────────────────────────────
   // FALLBACK: GENERIC
   // ──────────────────────────────────────────────────────
   return `Analyze this school-related document.

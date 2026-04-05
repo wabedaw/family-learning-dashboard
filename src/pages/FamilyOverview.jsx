@@ -5,7 +5,7 @@ import { useData } from '../store/DataContext';
 import { useTranslatedChildren } from '../hooks/useTranslatedChild';
 import { igcseActionPlans } from '../data/igcseActionPlans';
 import { schoolCalendar, newsletterSummary } from '../data/weeklyCalendar';
-import { Upload, TrendingUp, TrendingDown, Minus, Target, ChevronRight, Star, Sparkles, AlertTriangle, CheckCircle, Clock, ArrowRight, Flag, Calendar, Maximize2, Minimize2, CircleCheck } from 'lucide-react';
+import { Upload, TrendingUp, TrendingDown, Minus, Target, ChevronRight, Star, Sparkles, AlertTriangle, CheckCircle, Clock, ArrowRight, Flag, Calendar, Maximize2, Minimize2, CircleCheck, FileText, Trophy, AlertCircle, Activity, ListChecks } from 'lucide-react';
 import { useLang } from '../i18n';
 import Avatar from '../components/Avatar';
 import CheckInModal from '../components/CheckInModal';
@@ -343,6 +343,19 @@ function ChildColumn({ child, lang }) {
   const insight = plan?.overview?.[lang] || plan?.overview?.en || '';
   const shortInsight = insight.length > 80 ? insight.slice(0, 80) + '…' : insight;
 
+  // Phase 3 insight data
+  const profile = child.childProfile || {};
+  const summary = child.weeklySummary || null;
+  const guide = child.nextWeekGuide || null;
+  const timelineCount = profile.timeline?.length || 0;
+  const winsCount = summary?.stats?.wins ?? profile.weeklyWins?.length ?? 0;
+  const stuckCount = summary?.stats?.stuckPoints ?? profile.stuckPoints?.length ?? 0;
+  const progressVal = summary?.stats?.progressMetric ?? null;
+  const hasInsights = summary || profile.lastUpdated || guide;
+
+  // Next week top items
+  const nextDoMore = guide?.doMore?.slice(0, 2) || [];
+
   const radarData = (() => {
     const dims = ['academic', 'effort', 'stability', 'independence'];
     const labels = lang === 'zh' ? ['学业', '投入', '稳定', '独立'] : ['Acad', 'Effort', 'Stable', 'Indep'];
@@ -360,8 +373,9 @@ function ChildColumn({ child, lang }) {
 
   return (
     <div className="space-y-4">
-      {/* Name + Score */}
+      {/* ═══ Name + Score + Insights Strip ═══ */}
       <div className="retro-card p-4">
+        {/* Row 1: Avatar + Name + Score */}
         <div className="flex items-center gap-3">
           <Avatar src={child.avatar} size="md" />
           <div className="flex-1">
@@ -380,10 +394,105 @@ function ChildColumn({ child, lang }) {
           </div>
           <Link to={`/child/${child.id}`} className="text-teal hover:text-teal-dark"><ChevronRight className="w-5 h-5" /></Link>
         </div>
+
+        {/* Row 2: Insight quick insight */}
         <div className="mt-2 flex items-start gap-1.5">
           <Sparkles className="w-3 h-3 text-teal mt-0.5 shrink-0" />
           <p className="text-[9px] text-navy leading-relaxed">{shortInsight}</p>
         </div>
+
+        {/* Row 3: Insights Stats Strip */}
+        {hasInsights ? (
+          <div className="mt-3 pt-3 border-t border-cream-dark/30">
+            <div className="grid grid-cols-4 gap-2 mb-2.5">
+              <div className="flex items-center gap-1.5 bg-cream rounded-lg px-2 py-1.5">
+                <div className="w-5 h-5 bg-teal-light rounded flex items-center justify-center shrink-0">
+                  <FileText className="w-3 h-3 text-teal-dark" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-navy leading-none">{timelineCount}</div>
+                  <div className="text-[7px] text-brown-light font-bold uppercase tracking-wider">{lang === 'zh' ? '记录' : 'Records'}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 bg-cream rounded-lg px-2 py-1.5">
+                <div className="w-5 h-5 bg-mustard-light rounded flex items-center justify-center shrink-0">
+                  <Trophy className="w-3 h-3 text-mustard" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-navy leading-none">{winsCount}</div>
+                  <div className="text-[7px] text-brown-light font-bold uppercase tracking-wider">{lang === 'zh' ? '亮点' : 'Wins'}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 bg-cream rounded-lg px-2 py-1.5">
+                <div className="w-5 h-5 bg-coral-light rounded flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-3 h-3 text-coral" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-navy leading-none">{stuckCount}</div>
+                  <div className="text-[7px] text-brown-light font-bold uppercase tracking-wider">{lang === 'zh' ? '卡点' : 'Stuck'}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 bg-cream rounded-lg px-2 py-1.5">
+                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${progressVal != null ? 'bg-teal-light' : 'bg-cream-dark/30'}`}>
+                  <Activity className={`w-3 h-3 ${progressVal != null ? 'text-teal-dark' : 'text-brown-light/40'}`} />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-navy leading-none">{progressVal != null ? progressVal : '—'}</div>
+                  <div className="text-[7px] text-brown-light font-bold uppercase tracking-wider">{lang === 'zh' ? '进步' : 'Progress'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Next Week Peek */}
+            {nextDoMore.length > 0 && (
+              <div className="bg-teal-light/40 rounded-lg px-2.5 py-2 mb-2">
+                <div className="flex items-center gap-1 mb-1">
+                  <ListChecks className="w-3 h-3 text-teal-dark" />
+                  <span className="text-[8px] font-bold text-teal-dark uppercase tracking-wider">{lang === 'zh' ? '下周重点' : 'Next Week Focus'}</span>
+                </div>
+                <div className="space-y-0.5">
+                  {nextDoMore.map((item, i) => {
+                    const actionText = typeof item === 'string' ? item : item.action || item.title || '';
+                    const short = actionText.length > 50 ? actionText.slice(0, 50) + '…' : actionText;
+                    return (
+                      <div key={i} className="flex items-start gap-1">
+                        <span className="text-[9px] text-teal-dark">+</span>
+                        <span className="text-[9px] text-navy font-medium leading-tight">{short}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* One-liner summary */}
+            {summary?.oneLiner && (
+              <p className="text-[9px] text-brown-light italic leading-relaxed mb-2">
+                "{summary.oneLiner.length > 80 ? summary.oneLiner.slice(0, 80) + '…' : summary.oneLiner}"
+              </p>
+            )}
+
+            {/* Insights CTA */}
+            <Link to={`/child/${child.id}/insights`}
+              className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg bg-gradient-to-r from-teal/10 to-mustard/10 border border-teal/20 hover:border-teal/40 transition-all group">
+              <Sparkles className="w-3 h-3 text-teal group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-bold text-teal">{lang === 'zh' ? '查看完整洞察' : 'View Full Insights'}</span>
+              <ArrowRight className="w-3 h-3 text-teal group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+        ) : (
+          /* No insights yet — show prompt to generate */
+          <div className="mt-3 pt-3 border-t border-cream-dark/30">
+            <Link to={`/child/${child.id}/insights`}
+              className="flex items-center justify-center gap-1.5 w-full py-2 rounded-lg bg-cream-dark/20 border border-dashed border-cream-dark hover:border-teal/40 hover:bg-teal-light/20 transition-all group">
+              <Sparkles className="w-3.5 h-3.5 text-brown-light group-hover:text-teal transition-colors" />
+              <span className="text-[10px] font-semibold text-brown-light group-hover:text-teal transition-colors">
+                {lang === 'zh' ? '生成 AI 洞察报告' : 'Generate AI Insights'}
+              </span>
+              <ArrowRight className="w-3 h-3 text-brown-light group-hover:text-teal group-hover:translate-x-0.5 transition-all" />
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Goal Pathway */}

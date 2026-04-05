@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Home, LayoutDashboard, FileText, Target, Upload, BookOpen, Globe } from 'lucide-react';
+import { Home, LayoutDashboard, FileText, Target, Upload, BookOpen, Globe, Sparkles } from 'lucide-react';
 import { useLang } from '../i18n';
 import PetWidget from './PetWidget';
 
 const navKeys = [
   { to: '/', icon: Home, labelKey: 'nav.overview', descKey: 'nav.overview.desc' },
   { to: '/child/michael', icon: LayoutDashboard, labelKey: 'nav.michael', descKey: 'nav.michael.desc' },
+  { to: '/child/michael/insights', icon: Sparkles, labelKey: 'nav.michael.insights', descKey: 'nav.michael.insights.desc', indent: true },
   { to: '/child/lucas', icon: LayoutDashboard, labelKey: 'nav.lucas', descKey: 'nav.lucas.desc' },
+  { to: '/child/lucas/insights', icon: Sparkles, labelKey: 'nav.lucas.insights', descKey: 'nav.lucas.insights.desc', indent: true },
   { to: '/reports', icon: FileText, labelKey: 'nav.reports', descKey: 'nav.reports.desc' },
   { to: '/actions', icon: Target, labelKey: 'nav.actions', descKey: 'nav.actions.desc' },
   { to: '/upload', icon: Upload, labelKey: 'nav.upload', descKey: 'nav.upload.desc' },
@@ -55,17 +57,17 @@ export default function Layout() {
               to={item.to}
               end={item.to === '/'}
               className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all ${
+                `flex items-center gap-2.5 ${item.indent ? 'pl-8 pr-3' : 'px-3'} py-${item.indent ? '1.5' : '2'} rounded-lg text-sm transition-all ${
                   isActive
                     ? 'bg-teal text-cream-light font-semibold shadow-md'
                     : 'text-cream-dark/70 hover:bg-navy-light hover:text-cream-light'
                 }`
               }
             >
-              <item.icon className="w-4 h-4 shrink-0" />
+              <item.icon className={`${item.indent ? 'w-3.5 h-3.5' : 'w-4 h-4'} shrink-0`} />
               <div className="min-w-0">
-                <div className="truncate text-[13px]">{t(item.labelKey)}</div>
-                <div className="text-[9px] truncate opacity-50">{t(item.descKey)}</div>
+                <div className={`truncate ${item.indent ? 'text-[11px]' : 'text-[13px]'}`}>{t(item.labelKey)}</div>
+                {!item.indent && <div className="text-[9px] truncate opacity-50">{t(item.descKey)}</div>}
               </div>
             </NavLink>
           ))}

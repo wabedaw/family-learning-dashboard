@@ -16,6 +16,7 @@ const uploadTypes = [
   { id: 'seesaw', label: 'Homework Record', labelZh: '作业记录', icon: Camera, color: 'coral', accepts: '.jpg,.png,.pdf,.txt' },
   { id: 'parent-note', label: 'Parent Note', labelZh: '家长观察记录', icon: Pen, color: 'wine', accepts: '.txt,.pdf' },
   { id: 'child-reflection', label: 'Weekly Reflection', labelZh: '每周孩子反思', icon: Calendar, color: 'navy', accepts: '.txt,.pdf' },
+  { id: 'whatsapp', label: 'WhatsApp Chat', labelZh: 'WhatsApp 聊天记录', icon: MessageSquare, color: 'navy', accepts: '.txt' },
 ];
 
 const colorMap = {
@@ -27,6 +28,110 @@ const colorMap = {
 };
 
 const STATUS = { IDLE: 'idle', EXTRACTING: 'extracting', ANALYZING: 'analyzing', COMPLETE: 'complete', SAVED: 'saved', ERROR: 'error' };
+
+// ─── Build Timeline Entries from upload data (Phase 3) ─────
+function buildTimelineEntries(typeId, docData) {
+  const today = new Date().toISOString().split('T')[0];
+  const baseEntry = { id: `tl-${Date.now()}`, source: docData.id, date: docData.uploadDate || today };
+
+  switch (typeId) {
+    case 'report':
+      return [{
+        ...baseEntry,
+        type: 'report',
+        title: docData.term || docData.reportType || 'Term Report',
+        detail: docData.overallAnalysis?.overallTrend || docData.overallComment || '',
+        aiInsight: {
+          stuckPoints: docData.overallAnalysis?.topConcerns || [],
+          insights: docData.overallAnalysis?.keyRecommendations || [],
+          wins: docData.overallAnalysis?.topStrengths || [],
+        },
+      }];
+
+    case 'exam':
+      return [{
+        ...baseEntry,
+        type: 'exam',
+        title: `${docData.subject || 'Exam'} — ${docData.examType || 'Assessment'}`,
+        detail: docData.summary || '',
+        aiInsight: {
+          stuckPoints: docData.weaknesses || [],
+          insights: docData.recommendations || [],
+          wins: docData.strengths || [],
+        },
+      }];
+
+    case 'newsletter':
+      return [{
+        ...baseEntry,
+        type: 'newsletter',
+        title: docData.title || 'Weekly Newsletter',
+        detail: docData.summary || '',
+        aiInsight: {
+          stuckPoints: [],
+          insights: docData.actionRequired || [],
+          wins: [],
+        },
+      }];
+
+    case 'seesaw':
+      return [{
+        ...baseEntry,
+        type: 'homework',
+        title: docData.assignmentName || docData.subject || 'Homework Record',
+        detail: docData.summary || docData.qualityAssessment || '',
+        aiInsight: {
+          stuckPoints: docData.areasToImprove || [],
+          insights: docData.suggestions || [],
+          wins: docData.strengths || [],
+        },
+      }];
+
+    case 'parent-note':
+      return [{
+        ...baseEntry,
+        type: 'parentNote',
+        title: docData.observationType ? `Parent Note: ${docData.observationType}` : 'Parent Observation',
+        detail: docData.summary || '',
+        aiInsight: {
+          stuckPoints: docData.parentConcerns || [],
+          insights: docData.practicalSuggestions?.map(s => s.suggestion) || [],
+          wins: docData.parentPositives || [],
+        },
+      }];
+
+    case 'child-reflection':
+      return [{
+        ...baseEntry,
+        type: 'reflection',
+        title: 'Weekly Reflection',
+        detail: docData.summary || '',
+        aiInsight: {
+          stuckPoints: docData.struggles || [],
+          insights: docData.practicalSuggestions?.map(s => s.suggestion) || [],
+          wins: docData.wins || [],
+        },
+      }];
+
+    case 'whatsapp':
+      // WhatsApp returns an array of events — each becomes a timeline entry
+      if (Array.isArray(docData.events)) {
+        return docData.events.map((evt, i) => ({
+          id: `tl-${Date.now()}-wa-${i}`,
+          source: docData.id,
+          date: evt.date || today,
+          type: 'whatsapp',
+          title: evt.title || 'WhatsApp Event',
+          detail: evt.detail || '',
+          aiInsight: evt.aiInsight || null,
+        }));
+      }
+      return [];
+
+    default:
+      return [];
+  }
+}
 
 // ─── File Upload Zone ───────────────────────────────────────
 function FileUploadZone({ selectedType, onFileSelected, status, lang }) {
@@ -211,6 +316,12 @@ export default function DataUpload() {
     };
 
     dispatch({ type: actionType, payload: { childId: selectedChildId, data: docData } });
+
+    // Auto-append to timeline (Phase 3)
+    const timelineEntries = buildTimelineEntries(selectedType.id, docData);
+    if (timelineEntries.length > 0) {
+      dispatch({ type: 'ADD_TIMELINE_ENTRIES', payload: { childId: selectedChildId, entries: timelineEntries } });
+    }
 
     setHistory(prev => [{
       id: Date.now(),

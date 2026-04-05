@@ -42,6 +42,10 @@ export const translations = {
   'nav.actions.desc': { en: 'Plans & Goals', zh: '计划与目标', bi: '学习行动' },
   'nav.upload': { en: 'Upload Data', zh: '数据上传', bi: 'Upload Data' },
   'nav.upload.desc': { en: 'Import reports', zh: '导入报告', bi: '数据上传' },
+  'nav.michael.insights': { en: 'Insights', zh: '洞察', bi: 'Insights' },
+  'nav.michael.insights.desc': { en: 'Profile & Analysis', zh: '画像与分析', bi: '洞察' },
+  'nav.lucas.insights': { en: 'Insights', zh: '洞察', bi: 'Insights' },
+  'nav.lucas.insights.desc': { en: 'Profile & Analysis', zh: '画像与分析', bi: '洞察' },
 
   // Family Overview Page
   'overview.title': { en: "David's Family Dashboard", zh: 'David家庭仪表盘', bi: "David's Family Dashboard" },

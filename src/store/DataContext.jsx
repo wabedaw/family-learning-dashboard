@@ -12,6 +12,7 @@ const DOC_TYPES = {
   homework: 'homework',
   parentNote: 'parentNotes',
   reflection: 'reflections',
+  whatsapp: 'whatsappEvents',
 };
 
 const ACTION_MAP = {
@@ -21,6 +22,16 @@ const ACTION_MAP = {
   homework: 'ADD_HOMEWORK',
   parentNote: 'ADD_PARENT_NOTE',
   reflection: 'ADD_REFLECTION',
+  whatsapp: 'ADD_WHATSAPP',
+};
+
+const EMPTY_PROFILE = {
+  dimensions: { cognitive: 0, motivation: 0, strategy: 0, eq: 0, quality: 0 },
+  stuckPoints: [],
+  insights: [],
+  weeklyWins: [],
+  timeline: [],
+  lastUpdated: null,
 };
 
 // ─── Attainment → Standardised Score ────────────────────────
@@ -52,6 +63,10 @@ function buildInitialState() {
     homework: child.homework || [],
     parentNotes: child.parentNotes || [],
     reflections: child.reflections || [],
+    whatsappEvents: child.whatsappEvents || [],
+    childProfile: child.childProfile || { ...EMPTY_PROFILE },
+    weeklySummary: child.weeklySummary || null,
+    nextWeekGuide: child.nextWeekGuide || null,
   });
 
   const base = [addEmptyArrays({ ...michael }), addEmptyArrays({ ...lucas })];
@@ -77,6 +92,10 @@ function buildInitialState() {
         if (childUploads._goals) {
           child.goals = childUploads._goals;
         }
+        // Restore Phase 3 data
+        if (childUploads._childProfile) child.childProfile = childUploads._childProfile;
+        if (childUploads._weeklySummary) child.weeklySummary = childUploads._weeklySummary;
+        if (childUploads._nextWeekGuide) child.nextWeekGuide = childUploads._nextWeekGuide;
       });
     }
   } catch (e) {
@@ -98,6 +117,10 @@ function persistUploads(state) {
       });
       // Also persist current goals (to capture edits/deletes/status changes)
       childUploads._goals = child.goals || [];
+      // Persist Phase 3 insight data
+      if (child.childProfile?.lastUpdated) childUploads._childProfile = child.childProfile;
+      if (child.weeklySummary) childUploads._weeklySummary = child.weeklySummary;
+      if (child.nextWeekGuide) childUploads._nextWeekGuide = child.nextWeekGuide;
       uploads[child.id] = childUploads;
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(uploads));
@@ -136,7 +159,8 @@ function reducer(state, action) {
     case 'ADD_NEWSLETTER':
     case 'ADD_HOMEWORK':
     case 'ADD_PARENT_NOTE':
-    case 'ADD_REFLECTION': {
+    case 'ADD_REFLECTION':
+    case 'ADD_WHATSAPP': {
       const { childId, data } = action.payload;
       const arrayKey = {
         ADD_EXAM: 'exams',
@@ -144,6 +168,7 @@ function reducer(state, action) {
         ADD_HOMEWORK: 'homework',
         ADD_PARENT_NOTE: 'parentNotes',
         ADD_REFLECTION: 'reflections',
+        ADD_WHATSAPP: 'whatsappEvents',
       }[action.type];
       const doc = { ...data, id: data.id || `upload-${Date.now()}`, source: 'upload' };
       return {
@@ -192,6 +217,59 @@ function reducer(state, action) {
           c.id === childId
             ? { ...c, goals: (c.goals || []).filter(g => g.id !== goalId) }
             : c
+        ),
+      };
+    }
+
+    // ─── Phase 3: Insight System ──────────────────────────────
+    case 'UPDATE_CHILD_PROFILE': {
+      const { childId, profile } = action.payload;
+      return {
+        ...state,
+        children: state.children.map(c =>
+          c.id === childId
+            ? { ...c, childProfile: { ...(c.childProfile || EMPTY_PROFILE), ...profile, lastUpdated: new Date().toISOString() } }
+            : c
+        ),
+      };
+    }
+
+    case 'ADD_TIMELINE_ENTRIES': {
+      const { childId, entries } = action.payload;
+      return {
+        ...state,
+        children: state.children.map(c => {
+          if (c.id !== childId) return c;
+          const existing = c.childProfile?.timeline || [];
+          const existingIds = new Set(existing.map(e => e.id));
+          const newEntries = entries.filter(e => !existingIds.has(e.id));
+          return {
+            ...c,
+            childProfile: {
+              ...(c.childProfile || EMPTY_PROFILE),
+              timeline: [...existing, ...newEntries],
+            },
+          };
+        }),
+      };
+    }
+
+    case 'SET_WEEKLY_SUMMARY': {
+      const { childId, summary } = action.payload;
+      return {
+        ...state,
+        children: state.children.map(c =>
+          c.id === childId ? { ...c, weeklySummary: { ...summary, generatedAt: new Date().toISOString() } } : c
+        ),
+      };
+    }
+
+    case 'SET_NEXT_WEEK_GUIDE': {
+      const { childId, guide } = action.payload;
+      return {
+        ...state,
+        children: state.children.map(c =>
+          c.id === childId ? { ...c, nextWeekGuide: { ...guide, generatedAt: new Date().toISOString() } } : c
         ),
       };
     }
