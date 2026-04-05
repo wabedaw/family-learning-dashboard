@@ -2,78 +2,59 @@ import { createContext, useContext, useReducer, useEffect } from 'react';
 
 const TASK_KEY = 'familyDashboardTasks';
 
+// ─── Helpers ───────────────────────────────────────────────
+function shouldGoalRunOnDate(goal, dateStr) {
+  // Check date range
+  if (goal.startDate && dateStr < goal.startDate) return false;
+  if (goal.endDate && dateStr > goal.endDate) return false;
+
+  const d = new Date(dateStr + 'T00:00:00');
+  const dayOfWeek = d.getDay(); // 0=Sun .. 6=Sat
+
+  // New structured fields
+  if (goal.frequency) {
+    if (goal.frequency === 'daily') return true;
+    if (goal.frequency === 'weekdays') return dayOfWeek >= 1 && dayOfWeek <= 5;
+    if (goal.frequency === 'weekly') {
+      const days = goal.weekDays || [1, 2, 3, 4, 5];
+      return days.includes(dayOfWeek);
+    }
+  }
+
+  // Legacy fallback: parse timeBudget string for old goals without frequency field
+  const budget = (goal.timeBudget || '').toLowerCase();
+  const isDaily = budget.includes('daily') || budget.includes('每天') || budget.includes('min') || budget.includes('分钟');
+  const isWeekly = budget.includes('week') || budget.includes('每周') || budget.includes('/week');
+
+  if (isDaily) return dayOfWeek >= 1 && dayOfWeek <= 5; // weekdays
+  if (isWeekly) return [1, 3, 5].includes(dayOfWeek); // Mon, Wed, Fri
+  // Default: every other weekday
+  return dayOfWeek >= 1 && dayOfWeek <= 5 && dayOfWeek % 2 === 1;
+}
+
+function makeTask(goal, childId, childName, dateStr) {
+  return {
+    id: `task-${childId}-${goal.id}-${dateStr}`,
+    goalId: goal.id,
+    childId,
+    childName,
+    title: goal.title,
+    timeBudget: goal.timeBudget,
+    priority: goal.priority,
+    date: dateStr,
+    type: goal.frequency || 'goal',
+    completed: false,
+    checkedInAt: null,
+    proof: null,
+  };
+}
+
 // ─── Generate daily tasks from goals ────────────────────────
 export function generateDailyTasks(goals, childName, childId) {
-  const today = new Date();
-  const tasks = [];
-
-  goals.forEach(goal => {
-    if (goal.status === 'achieved') return;
-
-    // Parse timeBudget to determine frequency
-    const budget = (goal.timeBudget || '').toLowerCase();
-    const isDaily = budget.includes('daily') || budget.includes('每天') || budget.includes('min') || budget.includes('分钟');
-    const isWeekly = budget.includes('week') || budget.includes('每周') || budget.includes('/week');
-
-    if (isDaily) {
-      // Generate task for today
-      tasks.push({
-        id: `task-${childId}-${goal.id}-${today.toISOString().split('T')[0]}`,
-        goalId: goal.id,
-        childId,
-        childName,
-        title: goal.title,
-        timeBudget: goal.timeBudget,
-        priority: goal.priority,
-        date: today.toISOString().split('T')[0],
-        type: 'daily',
-        completed: false,
-        checkedInAt: null,
-        proof: null,
-      });
-    } else if (isWeekly) {
-      // Generate tasks for specific days this week (Mon, Wed, Fri)
-      const dayOfWeek = today.getDay();
-      const targetDays = [1, 3, 5]; // Mon, Wed, Fri
-      if (targetDays.includes(dayOfWeek)) {
-        tasks.push({
-          id: `task-${childId}-${goal.id}-${today.toISOString().split('T')[0]}`,
-          goalId: goal.id,
-          childId,
-          childName,
-          title: goal.title,
-          timeBudget: goal.timeBudget,
-          priority: goal.priority,
-          date: today.toISOString().split('T')[0],
-          type: 'weekly',
-          completed: false,
-          checkedInAt: null,
-          proof: null,
-        });
-      }
-    } else {
-      // Default: show every other day
-      const dayNum = Math.floor(today.getTime() / 86400000);
-      if (dayNum % 2 === 0) {
-        tasks.push({
-          id: `task-${childId}-${goal.id}-${today.toISOString().split('T')[0]}`,
-          goalId: goal.id,
-          childId,
-          childName,
-          title: goal.title,
-          timeBudget: goal.timeBudget,
-          priority: goal.priority,
-          date: today.toISOString().split('T')[0],
-          type: 'goal',
-          completed: false,
-          checkedInAt: null,
-          proof: null,
-        });
-      }
-    }
-  });
-
-  return tasks;
+  const todayStr = new Date().toISOString().split('T')[0];
+  return goals
+    .filter(g => g.status !== 'achieved' && shouldGoalRunOnDate(g, todayStr))
+    .map(g => makeTask(g, childId, childName, todayStr));
 }
 
 // Generate tasks for a full week (for calendar display)
@@ -83,35 +64,11 @@ export function generateWeekTasks(goals, childName, childId, mondayDate) {
     const d = new Date(mondayDate);
     d.setDate(d.getDate() + offset);
     const dateStr = d.toISOString().split('T')[0];
-    const dayOfWeek = d.getDay();
-    const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
 
     goals.forEach(goal => {
       if (goal.status === 'achieved') return;
-      const budget = (goal.timeBudget || '').toLowerCase();
-      const isDaily = budget.includes('daily') || budget.includes('每天') || budget.includes('min') || budget.includes('分钟');
-      const isWeekly = budget.includes('week') || budget.includes('每周') || budget.includes('/week');
-
-      let shouldAdd = false;
-      if (isDaily && isWeekday) shouldAdd = true;
-      else if (isWeekly && [1, 3, 5].includes(dayOfWeek)) shouldAdd = true;
-      else if (!isDaily && !isWeekly && isWeekday && dayOfWeek % 2 === 1) shouldAdd = true;
-
-      if (shouldAdd) {
-        tasks.push({
-          id: `task-${childId}-${goal.id}-${dateStr}`,
-          goalId: goal.id,
-          childId,
-          childName,
-          title: goal.title,
-          timeBudget: goal.timeBudget,
-          priority: goal.priority,
-          date: dateStr,
-          type: isDaily ? 'daily' : isWeekly ? 'weekly' : 'goal',
-          completed: false,
-          checkedInAt: null,
-          proof: null,
-        });
+      if (shouldGoalRunOnDate(goal, dateStr)) {
+        tasks.push(makeTask(goal, childId, childName, dateStr));
       }
     });
   }

@@ -1,8 +1,8 @@
-import { Target, CheckCircle, Clock, AlertCircle, Pencil } from 'lucide-react';
+import { Target, CheckCircle, Clock, AlertCircle, Pencil, Calendar, Repeat } from 'lucide-react';
 import { useLang } from '../i18n';
 
 export default function GoalCard({ goal, onEdit }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const statusConfig = {
     'on-track': { icon: Clock, color: 'text-teal-dark', bg: 'bg-teal-light', border: 'border-teal', label: t('status.onTrack') },
@@ -41,6 +41,25 @@ export default function GoalCard({ goal, onEdit }) {
         <div><span className="text-brown-light uppercase tracking-wider text-[9px]">{t('goal.time')}</span><div className="font-bold text-navy">{goal.timeBudget}</div></div>
         <div><span className="text-brown-light uppercase tracking-wider text-[9px]">{t('goal.owner')}</span><div className="font-bold text-navy">{goal.owner}</div></div>
       </div>
+      {/* Schedule info */}
+      {(goal.startDate || goal.frequency) && (
+        <div className="flex flex-wrap items-center gap-2 text-[9px] text-brown-light mb-3">
+          {goal.startDate && (
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-cream rounded border border-cream-dark">
+              <Calendar className="w-2.5 h-2.5" />
+              {goal.startDate}{goal.endDate ? ` → ${goal.endDate}` : ''}
+            </span>
+          )}
+          {goal.frequency && (
+            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-cream rounded border border-cream-dark">
+              <Repeat className="w-2.5 h-2.5" />
+              {goal.frequency === 'daily' ? (lang === 'zh' ? '每天' : 'Daily')
+                : goal.frequency === 'weekdays' ? (lang === 'zh' ? '工作日' : 'Weekdays')
+                : (lang === 'zh' ? '每周' : 'Weekly') + (goal.weekDays?.length ? ` (${goal.weekDays.map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')})` : '')}
+            </span>
+          )}
+        </div>
+      )}
       {goal.observations?.length > 0 && (
         <div className="border-t-2 border-dashed border-cream-dark pt-2">
           <p className="text-[9px] text-brown-light uppercase tracking-wider mb-1">{t('goal.observations')}</p>

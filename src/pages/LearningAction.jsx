@@ -3,7 +3,7 @@ import { getLatestReport } from '../data';
 import { useData } from '../store/DataContext';
 import { igcseActionPlans } from '../data/igcseActionPlans';
 import GoalCard from '../components/GoalCard';
-import { Target, ArrowLeft, Plus, X, Trash2, Save, GraduationCap, TrendingUp, AlertTriangle, Star, Lightbulb, BookOpen, ChevronDown, ChevronRight } from 'lucide-react';
+import { Target, ArrowLeft, Plus, X, Trash2, Save, GraduationCap, TrendingUp, AlertTriangle, Star, Lightbulb, BookOpen, ChevronDown, ChevronRight, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useLang } from '../i18n';
 import { useTranslatedChild, useTranslatedChildren } from '../hooks/useTranslatedChild';
@@ -133,16 +133,31 @@ function SubjectActionCard({ sub, lang, category }) {
 }
 
 // ─── Goal Form ──────────────────────────────────────────────
+const DAY_LABELS = { en: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], zh: ['日','一','二','三','四','五','六'] };
+
 const emptyGoal = {
   id: '', term: '', type: 'academic', title: '', reason: '',
   priority: 'Medium', timeBudget: '', owner: '', status: 'in-progress', observations: [],
+  startDate: '', endDate: '', frequency: 'daily', weekDays: [1,2,3,4,5], // Mon–Fri default
 };
 
 function GoalForm({ goal, onSave, onCancel, onDelete, childName, children }) {
-  const [form, setForm] = useState({ ...emptyGoal, ...goal, observationsText: (goal?.observations || []).join('\n') });
+  const defaults = {
+    ...emptyGoal,
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: (() => { const d = new Date(); d.setMonth(d.getMonth() + 3); return d.toISOString().split('T')[0]; })(),
+  };
+  const [form, setForm] = useState({ ...defaults, ...goal, observationsText: (goal?.observations || []).join('\n') });
   const { lang } = useLang();
   const isEditing = !!goal?.id;
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const toggleDay = (day) => {
+    setForm(f => {
+      const days = f.weekDays || [];
+      return { ...f, weekDays: days.includes(day) ? days.filter(d => d !== day) : [...days, day].sort() };
+    });
+  };
 
   const handleSave = () => {
     if (!form.title.trim()) return;
@@ -151,6 +166,7 @@ function GoalForm({ goal, onSave, onCancel, onDelete, childName, children }) {
       id: form.id || 'g-' + Date.now(),
       term: form.term || (getLatestReport(children.find(c => c.name === childName))?.term || ''),
       observations: form.observationsText.split('\n').map(s => s.trim()).filter(Boolean),
+      weekDays: form.frequency === 'weekly' ? (form.weekDays || []) : form.frequency === 'daily' ? [0,1,2,3,4,5,6] : form.weekDays,
     };
     delete saved.observationsText;
     onSave(saved);
@@ -168,6 +184,11 @@ function GoalForm({ goal, onSave, onCancel, onDelete, childName, children }) {
     { value: 'at-risk', label: lang === 'zh' ? '需关注' : 'At Risk' },
   ];
   const priOpts = [{ value: 'High', label: lang === 'zh' ? '高' : 'High' }, { value: 'Medium', label: lang === 'zh' ? '中' : 'Medium' }, { value: 'Low', label: lang === 'zh' ? '低' : 'Low' }];
+  const freqOpts = [
+    { value: 'daily', label: lang === 'zh' ? '每天' : 'Every Day' },
+    { value: 'weekdays', label: lang === 'zh' ? '工作日' : 'Weekdays (Mon-Fri)' },
+    { value: 'weekly', label: lang === 'zh' ? '每周指定日' : 'Specific Days' },
+  ];
   const lbl = "text-[11px] font-semibold text-navy uppercase tracking-wider block mb-1";
   const inp = "w-full p-2 text-sm border-2 border-cream-dark rounded-lg bg-cream-light focus:outline-none focus:ring-2 focus:ring-teal text-navy";
 
@@ -180,12 +201,49 @@ function GoalForm({ goal, onSave, onCancel, onDelete, childName, children }) {
         <button onClick={onCancel} className="w-7 h-7 rounded-md bg-cream-dark/60 flex items-center justify-center hover:bg-cream-dark"><X className="w-4 h-4 text-brown" /></button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+        {/* Row 1: Title */}
         <div className="lg:col-span-2"><label className={lbl}>{lang === 'zh' ? '目标名称' : 'Goal Title'} *</label><input value={form.title} onChange={e => set('title', e.target.value)} className={inp} /></div>
+
+        {/* Row 2: Type, Priority, Status */}
         <div><label className={lbl}>{lang === 'zh' ? '类型' : 'Type'}</label><select value={form.type} onChange={e => set('type', e.target.value)} className={inp + ' appearance-none'}>{typeOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
         <div><label className={lbl}>{lang === 'zh' ? '优先级' : 'Priority'}</label><select value={form.priority} onChange={e => set('priority', e.target.value)} className={inp + ' appearance-none'}>{priOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
         <div><label className={lbl}>{lang === 'zh' ? '状态' : 'Status'}</label><select value={form.status} onChange={e => set('status', e.target.value)} className={inp + ' appearance-none'}>{statusOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
         <div><label className={lbl}>{lang === 'zh' ? '负责人' : 'Owner'}</label><input value={form.owner} onChange={e => set('owner', e.target.value)} className={inp} /></div>
-        <div><label className={lbl}>{lang === 'zh' ? '时间' : 'Time'}</label><input value={form.timeBudget} onChange={e => set('timeBudget', e.target.value)} className={inp} /></div>
+
+        {/* Row 3: Schedule — Start / End / Time Budget */}
+        <div className="lg:col-span-2 p-3 bg-cream rounded-lg border border-cream-dark">
+          <p className="text-[10px] font-bold text-teal uppercase tracking-wider mb-2 flex items-center gap-1">
+            <Calendar className="w-3 h-3" /> {lang === 'zh' ? '日程安排' : 'Schedule'}
+          </p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div><label className={lbl}>{lang === 'zh' ? '开始日期' : 'Start Date'}</label><input type="date" value={form.startDate || ''} onChange={e => set('startDate', e.target.value)} className={inp} /></div>
+            <div><label className={lbl}>{lang === 'zh' ? '结束日期' : 'End Date'}</label><input type="date" value={form.endDate || ''} onChange={e => set('endDate', e.target.value)} className={inp} /></div>
+            <div><label className={lbl}>{lang === 'zh' ? '每次时长' : 'Time per Session'}</label><input value={form.timeBudget} onChange={e => set('timeBudget', e.target.value)} placeholder="e.g. 30 min" className={inp} /></div>
+            <div><label className={lbl}>{lang === 'zh' ? '频率' : 'Frequency'}</label><select value={form.frequency || 'daily'} onChange={e => set('frequency', e.target.value)} className={inp + ' appearance-none'}>{freqOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select></div>
+          </div>
+
+          {/* Day Picker — shown for 'weekly' or 'weekdays' frequency */}
+          {(form.frequency === 'weekly') && (
+            <div className="mt-3">
+              <label className={lbl}>{lang === 'zh' ? '选择重复日' : 'Repeat On'}</label>
+              <div className="flex gap-1.5">
+                {DAY_LABELS[lang === 'zh' ? 'zh' : 'en'].map((label, i) => {
+                  const active = (form.weekDays || []).includes(i);
+                  return (
+                    <button key={i} type="button" onClick={() => toggleDay(i)}
+                      className={`w-9 h-9 rounded-lg text-[11px] font-bold border-2 transition-all ${
+                        active ? 'bg-teal text-cream-light border-teal' : 'bg-cream-light text-navy border-cream-dark hover:border-teal'
+                      }`}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Row 4: Reason + Observations */}
         <div className="lg:col-span-2"><label className={lbl}>{lang === 'zh' ? '原因' : 'Reason'}</label><textarea value={form.reason} onChange={e => set('reason', e.target.value)} className={inp + ' resize-none'} rows={2} /></div>
         <div className="lg:col-span-2"><label className={lbl}>{lang === 'zh' ? '观察记录' : 'Observations'}</label><textarea value={form.observationsText} onChange={e => set('observationsText', e.target.value)} className={inp + ' resize-none'} rows={2} /></div>
       </div>

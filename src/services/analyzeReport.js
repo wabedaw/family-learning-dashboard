@@ -1,51 +1,33 @@
 /**
- * Analyze extracted report text using Claude API
+ * Analyze extracted report text using Bridge Server LLM proxy.
+ * API keys stay server-side — the frontend never touches them.
+ *
  * @param {string} text - The extracted text from the report
  * @param {string} reportType - Type of report
  * @param {object} childContext - { name, yearGroup, stage, focusSubjects, latestSubjects: [{ name, attainment }] }
  * @returns {Promise<object>} - Structured analysis result
  */
-export async function analyzeReport(text, reportType = 'report', childContext = null) {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('MISSING_API_KEY');
+import { BRIDGE_URL } from '../config';
 
+export async function analyzeReport(text, reportType = 'report', childContext = null) {
   const systemPrompt = `You are an expert educational analyst specializing in UK/Singapore school reports (Brighton College). You extract structured data and provide insightful analysis for parents.
 Your output MUST be valid JSON only — no markdown, no code fences, no explanation text before or after the JSON.`;
 
   const userPrompt = buildPrompt(text, reportType, childContext);
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch(`${BRIDGE_URL}/api/analyze`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ systemPrompt, userPrompt }),
   });
 
   if (!response.ok) {
     const errBody = await response.text();
-    console.error('Claude API error:', response.status, errBody);
+    console.error('Bridge analyze error:', response.status, errBody);
     throw new Error(`API_ERROR_${response.status}`);
   }
 
-  const data = await response.json();
-  const content = data.content?.[0]?.text || '';
-
-  try {
-    const jsonStr = content.replace(/^```json\s*\n?/, '').replace(/\n?```\s*$/, '').trim();
-    return JSON.parse(jsonStr);
-  } catch (e) {
-    console.error('Failed to parse Claude response as JSON:', content);
-    return { rawAnalysis: content, parseError: true, summary: 'Analysis completed but could not be structured automatically.' };
-  }
+  return response.json();
 }
 
 // ─── Build child context string ─────────────────────────────

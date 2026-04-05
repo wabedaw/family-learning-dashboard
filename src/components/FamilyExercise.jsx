@@ -76,7 +76,7 @@ export default function FamilyExercise() {
           </div>
           <div>
             <h2 className="text-base font-bold text-cream-light font-[family-name:var(--font-display)]">
-              {lang === 'en' ? 'Family Exercise' : '家庭运动'}
+              Family Exercise
             </h2>
             {streakDays > 0 && (
               <span className="text-[9px] text-coral font-bold flex items-center gap-0.5">
