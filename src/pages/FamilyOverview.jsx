@@ -9,7 +9,7 @@ import { Upload, TrendingUp, TrendingDown, Minus, Target, ChevronRight, Star, Sp
 import { useLang } from '../i18n';
 import Avatar from '../components/Avatar';
 import CheckInModal from '../components/CheckInModal';
-import FamilyExercise from '../components/FamilyExercise';
+import FamilyActivity from '../components/FamilyActivity';
 import { generateWeekTasks, useTasks, isCheckedIn } from '../store/TaskStore';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
 
@@ -124,7 +124,7 @@ export default function FamilyOverview() {
       {/* ═══════ TOP ROW: Calendar + Exercise Side by Side ═══════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <SchoolCalendar upcoming={upcoming} lang={lang} hasUploaded={children.some(c => (c.newsletters || []).length > 0)} allChildren={tChildren} onCheckIn={setCheckInTask} mergedCal={mergedCal} />
-        <FamilyExercise />
+        <FamilyActivity />
       </div>
 
       {/* ═══════ TWO COLUMNS: Michael | Lucas ═══════ */}

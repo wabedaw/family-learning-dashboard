@@ -41,6 +41,39 @@ export function useExerciseData() {
   return { data, loading, error, refresh };
 }
 
+// ---------------------------------------------------------------------------
+// Reading data — fixed 60-min daily goal per person
+// ---------------------------------------------------------------------------
+export function useReadingData() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const dateStr = getSGDateStr();
+      const res = await fetch(`${BRIDGE_URL}/api/reading/family?date=${dateStr}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setData(json);
+      setError(null);
+    } catch (e) {
+      console.warn('Reading data fetch failed:', e);
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    const id = setInterval(refresh, 60000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  return { data, loading, error, refresh };
+}
+
 export function useExercisePlans() {
   const [plans, setPlans] = useState(null);
   const [loading, setLoading] = useState(true);
