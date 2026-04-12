@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, X } from 'lucide-react';
+import { Save, X, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { useExercisePlans } from '../hooks/useExerciseData';
 import { useLang } from '../i18n';
 
@@ -8,15 +8,13 @@ const SPORT_OPTIONS = ['Rest', 'Running', 'Basketball', 'Swimming', 'Cycling', '
 const ACTOR_ORDER = ['michael', 'lucas', 'fay', 'david'];
 
 export default function ExercisePlanEditor({ onClose }) {
-  const { plans, loading, savePlan } = useExercisePlans();
+  const { plans, loading, saving, saveError, saveSuccess, saveAllPlans } = useExercisePlans();
   const [localPlans, setLocalPlans] = useState({});
-  const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const { lang } = useLang();
 
   const dayLabels = lang === 'en' ? DAY_LABELS.en : DAY_LABELS.zh;
 
-  // Initialize local state from server data
   useEffect(() => {
     if (!plans) return;
     const local = {};
@@ -35,8 +33,6 @@ export default function ExercisePlanEditor({ onClose }) {
       const next = { ...prev };
       next[actorId] = { ...next[actorId] };
       next[actorId][day] = { ...next[actorId][day], [field]: value };
-
-      // Auto-set target when sport changes
       if (field === 'sport_type') {
         if (value === 'Rest') {
           next[actorId][day].target_duration_min = 0;
@@ -51,23 +47,18 @@ export default function ExercisePlanEditor({ onClose }) {
   }
 
   async function handleSave() {
-    setSaving(true);
-    try {
-      for (const actorId of ACTOR_ORDER) {
-        for (let d = 0; d < 7; d++) {
-          const plan = localPlans[actorId]?.[d];
-          if (plan) await savePlan(actorId, d, plan);
-        }
-      }
-      setDirty(false);
-    } catch (e) {
-      console.error('Save failed:', e);
-    } finally {
-      setSaving(false);
-    }
+    const ok = await saveAllPlans(localPlans);
+    if (ok) setDirty(false);
   }
 
-  if (loading || !plans) return <div className="p-4 text-xs text-navy-light">Loading plans...</div>;
+  if (loading && !plans) {
+    return (
+      <div className="p-4 text-xs text-navy-light flex items-center gap-2">
+        <Loader className="w-3 h-3 animate-spin" />
+        {lang === 'en' ? 'Loading plans...' : '加载中...'}
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 bg-cream-light/50">
@@ -75,12 +66,29 @@ export default function ExercisePlanEditor({ onClose }) {
         <h3 className="text-xs font-bold uppercase tracking-wide text-navy">
           {lang === 'en' ? '⚙️ Weekly Exercise Plan' : '⚙️ 每周运动计划'}
         </h3>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {saveSuccess && (
+            <span className="flex items-center gap-0.5 text-[10px] text-teal font-bold">
+              <CheckCircle className="w-3 h-3" />
+              {lang === 'en' ? 'Saved!' : '已保存到云端！'}
+            </span>
+          )}
+          {saveError && (
+            <span className="flex items-center gap-0.5 text-[10px] text-coral font-bold">
+              <AlertCircle className="w-3 h-3" />
+              {lang === 'en' ? saveError : saveError}
+            </span>
+          )}
           {dirty && (
-            <button onClick={handleSave} disabled={saving}
-              className="retro-btn text-[10px] px-2 py-1 bg-teal text-white border-teal-dark">
-              <Save className="w-3 h-3 inline mr-1" />
-              {saving ? '...' : lang === 'en' ? 'Save' : '保存'}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="retro-btn text-[10px] px-2 py-1 bg-teal text-white border-teal-dark flex items-center gap-1"
+            >
+              {saving
+                ? <><Loader className="w-3 h-3 animate-spin" />{lang === 'en' ? 'Saving...' : '保存中...'}</>
+                : <><Save className="w-3 h-3" />{lang === 'en' ? 'Save' : '保存'}</>
+              }
             </button>
           )}
           <button onClick={onClose} className="text-navy-light hover:text-navy">
@@ -89,7 +97,6 @@ export default function ExercisePlanEditor({ onClose }) {
         </div>
       </div>
 
-      {/* Scrollable table */}
       <div className="overflow-x-auto">
         <table className="w-full text-[10px] border-collapse">
           <thead>
@@ -102,7 +109,7 @@ export default function ExercisePlanEditor({ onClose }) {
           </thead>
           <tbody>
             {ACTOR_ORDER.map(actorId => {
-              const actorName = plans[actorId]?.name || actorId;
+              const actorName = plans?.[actorId]?.name || actorId;
               return (
                 <tr key={actorId} className="border-t border-cream-dark/50">
                   <td className="p-1 font-bold text-navy text-[11px]">{actorName}</td>
@@ -150,6 +157,9 @@ export default function ExercisePlanEditor({ onClose }) {
 
       <div className="mt-2 text-[9px] text-navy-light">
         ⚡ = {lang === 'en' ? 'Challenge mode (60min to exceed)' : '挑战模式（60分钟超越）'}
+        <span className="ml-2 text-teal-light/70">
+          ☁️ {lang === 'en' ? 'Plans sync to cloud' : '计划同步到云端，跨设备生效'}
+        </span>
       </div>
     </div>
   );
